@@ -27,5 +27,5 @@ dist-ssr
 .env.local
 
 # GTFS data files (these can be large)
-public/data/*.txt
-public/data/*.zip
+public/data/gtfs/*.txt
+public/data/gtfs/*.zip
