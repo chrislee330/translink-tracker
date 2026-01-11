@@ -15,3 +15,20 @@
   height: 100%;
   width: 100%;
 }
+
+/* Custom stop marker styles */
+.custom-stop-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Make popups nicer */
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-popup-content {
+  margin: 8px 12px;
+  font-size: 14px;
+}

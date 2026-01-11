@@ -29,3 +29,4 @@ dist-ssr
 # GTFS data files (these can be large)
 public/data/gtfs/*.txt
 public/data/gtfs/*.zip
+public/data/*.json

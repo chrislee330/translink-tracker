@@ -1,28 +1,4 @@
-import Papa from 'papaparse';
 import { ROUTE_COLORS } from '../utils/constants';
-
-/**
- * Load and parse a GTFS text file
- */
-async function loadGTFSFile(filename) {
-    try {
-        const response = await fetch(`/data/gtfs/${filename}`);
-        const text = await response.text();
-
-        return new Promise((resolve, reject) => {
-            Papa.parse(text, {
-                header: true,
-                dynamicTyping: true,
-                skipEmptyLines: true,
-                complete: (results) => resolve(results.data),
-                error: (error) => reject(error),
-            });
-        });
-    } catch (error) {
-        console.error(`Error loading ${filename}:`, error);
-        throw error;
-    }
-}
 
 /**
  * Load all necessary GTFS Static data
@@ -31,53 +7,30 @@ export async function loadGTFSStaticData() {
     console.log('Loading GTFS Static data');
 
     try {
-        const routesOriginal = await loadGTFSFile('routes.txt');
-        const routes = routesOriginal.map(route => ({
-            ...route,
-            route_short_name: normalizeValues(route.route_short_name),
-            route_color: normalizeValues(route.route_color),
-        }));
-        const stops = await loadGTFSFile('stops.txt');
-        const shapes = await loadGTFSFile('shapes.txt');
-        const trips = await loadGTFSFile('trips.txt');
+        const response = await fetch('/data/gtfs-processed.json');
+        const data = await response.json();
 
         console.log('GTFS data loaded:', {
-            routes: routes.length,
-            stops: stops.length,
-            shapes: shapes.length,
-            trips: trips.length,
+            routes: data.routes.length,
+            stops: data.stops.length,
+            shapes: data.shapes.length,
+            trips: data.trips.length,
+            stopTimes: data.stopTimes.length,
         });
 
-        return { routes, stops, shapes, trips };
+        return data;
     } catch (error) {
         console.error('Failed to load GTFS data:', error);
         throw error;
     }
 }
-/**
- * 
- * normalize to strings
- */
-export function normalizeValues(value) {
-    if (value === null || value === undefined) {
-        return "";
-    }
-
-    // Convert anything to string
-    let str = String(value);
-
-    str = str.trim();
-
-    return str;
-}
-
 
 /**
  * Get routes by their short names
  */
 export function getRoutesByShortNames(routes, shortNames) {
     // console.log(shortNames.map(x => typeof x));
-    console.log(routes.map(route => typeof route.route_short_name));
+    // console.log(routes.map(route => typeof route.route_short_name));
     return routes.filter(route =>
         shortNames.includes(route.route_short_name)
     );
@@ -107,6 +60,7 @@ export function getShapeForRoute(route, trips, shapes) {
 
 /**
  * Get stops for a specific route
+ * Return array of stop objects with coordinates
  */
 export function getStopsForRoute(route, trips, stopTimes, stops) {
     // Find all trips for this route
@@ -140,15 +94,32 @@ export function getRouteColor(route) {
     color = color.padStart(6, "0");
 
     const isValidHex = /^[0-9A-F]{1,6}$/.test(color);
-    console.log(isValidHex, color);
+    // console.log(isValidHex, color);
     // Must be valid hex, if no route_color
     if (!isValidHex || color == "000000") {
         if (ROUTE_COLORS[route.route_short_name]) {
-            console.log(route.route_short_name);
+            // console.log(route.route_short_name);
             return ROUTE_COLORS[route.route_short_name];
         }
         return DEFAULT_COLOR;
     }
 
     return `#${color}`;
+}
+
+/**
+ * Gets major stops only for avoiding clutter on the map
+ * (Simpler names)
+ */
+export function getMajorStopsForRoute(route, trips, stopTimes, stops) {
+    const allStops = getStopsForRoute(route, trips, stopTimes, stops);
+
+    const majorStops = allStops.filter((stop, index) => {
+        // every 3rd stop, or "STATION" or "SKYTRAIN" in name
+        return index % 3 === 0 ||
+            stop.stop_name?.toUpperCase().includes('STATION') ||
+            stop.stop_name?.toUpperCase().includes('SKYTRAIN');
+    });
+
+    return majorStops;
 }

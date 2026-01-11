@@ -1,13 +1,42 @@
 import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Polyline, Popup } from 'react-leaflet';
-import { loadGTFSStaticData, getRoutesByShortNames, getShapeForRoute, getRouteColor } from '../services/gtfsStatic';
+import { MapContainer, TileLayer, Polyline, Popup, useMap } from 'react-leaflet';
+import { loadGTFSStaticData, getRoutesByShortNames, getShapeForRoute, getRouteColor, getMajorStopsForRoute } from '../services/gtfsStatic';
+import StopMarker from './StopMarker';
 import '../utils/leafletConfig';
+import MapControls from './MapControls';
+
+function ZoomAwareStops({ route, showStops }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => map.off('zoomend', handleZoom);
+  }, [map]);
+
+  // Only show stops when zoomed in past level 13
+  if (!showStops || zoom < 13) return null;
+
+  return (
+    <>
+      {route.stops.map((stop, index) => (
+        <StopMarker 
+          key={`${route.route_id}-${stop.stop_id}-${index}`}
+          stop={stop}
+          route={route}
+        />
+      ))}
+    </>
+  );
+}
 
 function Map({ selectedRouteNames }) {
   const [gtfsData, setGtfsData] = useState(null);
   const [displayRoutes, setDisplayRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showStops, setShowStops] = useState(true);
 
   const center = [49.2827, -123.1207];
   const zoom = 12;
@@ -44,8 +73,14 @@ function Map({ selectedRouteNames }) {
     const routesWithShapes = routes.map(route => ({
       ...route,
       shape: getShapeForRoute(route, gtfsData.trips, gtfsData.shapes),
+      stops: getMajorStopsForRoute(route, gtfsData.trips, gtfsData.stopTimes, gtfsData.stops),
       color: getRouteColor(route),
     }));
+
+    console.log('Routes with stops:', routesWithShapes.map(r => ({
+        route: r.route_short_name,
+        stops: r.stops.length
+    })));
 
     setDisplayRoutes(routesWithShapes);
   }, [gtfsData, selectedRouteNames]);
@@ -87,7 +122,8 @@ function Map({ selectedRouteNames }) {
 
         {/* Draw route shapes */}
         {displayRoutes.map(route => (
-          route.shape.length > 0 && (
+            <div key={route.route_id}>
+          {route.shape.length > 0 && (
             <Polyline
               key={route.route_id}
               positions={route.shape}
@@ -104,8 +140,17 @@ function Map({ selectedRouteNames }) {
                 </div>
               </Popup>
             </Polyline>
-          )
+          )}
+          {/* Add stops based off zoom */}
+            <ZoomAwareStops route={route} showStops={showStops}/>
+          </div>
         ))}
+
+        {/* Add map controls */}
+      <MapControls 
+        showStops={showStops} 
+        onToggleStops={setShowStops}
+      />
 
         {/* Show message if no routes selected */}
         {displayRoutes.length === 0 && !loading && (
@@ -114,6 +159,8 @@ function Map({ selectedRouteNames }) {
           </div>
         )}
       </MapContainer>
+
+      
     </div>
   );
 }
