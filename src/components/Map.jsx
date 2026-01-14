@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Polyline, Popup, useMap } from 'react-leaflet';
 import { loadGTFSStaticData, getRoutesByShortNames, getShapeForRoute, getRouteColor, getMajorStopsForRoute } from '../services/gtfsStatic';
+import { fetchVehiclePositions, filterVehiclesByRoutes, getRouteIdsFromRoutes, enrichVehiclesWithHeadsigns } from '../services/gtfsRealtime';
 import StopMarker from './StopMarker';
 import '../utils/leafletConfig';
 import MapControls from './MapControls';
+import VehicleMarker from './VehicleMarker';
 
 function ZoomAwareStops({ route, showStops }) {
     const map = useMap();
@@ -37,6 +39,7 @@ function Map({ selectedRouteNames }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showStops, setShowStops] = useState(true);
+    const [vehicles, setVehicles] = useState([]);
 
     const center = [49.2827, -123.1207];
     const zoom = 12;
@@ -84,6 +87,44 @@ function Map({ selectedRouteNames }) {
 
         setDisplayRoutes(routesWithShapes);
     }, [gtfsData, selectedRouteNames]);
+
+    // Fetch vehicle positions and update every 30 seconds
+    useEffect(() => {
+        if (displayRoutes.length === 0) {
+            setVehicles([]);
+            return;
+        }
+
+        async function updateVehicles() {
+            try {
+                console.log('Fetching vehicle positions...');
+
+                // Fetch all vehicle positions
+                const allVehicles = await fetchVehiclePositions();
+
+                // Filter to only vehicles on selected routes
+                const routeIds = getRouteIdsFromRoutes(displayRoutes);
+                const filteredVehicles = filterVehiclesByRoutes(allVehicles, routeIds);
+                console.log(filteredVehicles, gtfsData.trips);
+                const enrichedVehicles = enrichVehiclesWithHeadsigns(filteredVehicles, gtfsData.trips);
+
+                console.log(`Showing ${filteredVehicles.length} vehicles on ${displayRoutes.length} routes`);
+
+                setVehicles(enrichedVehicles);
+            } catch (err) {
+                console.error('Error fetching vehicles:', err);
+            }
+        }
+
+        // fetch once
+        updateVehicles();
+
+        // fetch every 30 seconds
+        const interval = setInterval(updateVehicles, 30000);
+
+        // reset interval
+        return () => clearInterval(interval);
+    }, [displayRoutes]);
 
     if (loading) {
         return (
@@ -150,7 +191,24 @@ function Map({ selectedRouteNames }) {
                 <MapControls
                     showStops={showStops}
                     onToggleStops={setShowStops}
+                    vehicleCount={vehicles.length}
                 />
+
+                {/* Draw vehicle markers */}
+                {vehicles.map(vehicle => {
+                    // Find the route for this vehicle
+                    const route = displayRoutes.find(r => r.route_id.toString() === vehicle.routeId);
+
+                    if (!route) return null;
+
+                    return (
+                        <VehicleMarker
+                            key={vehicle.id}
+                            vehicle={vehicle}
+                            route={route}
+                        />
+                    );
+                })}
 
                 {/* Show message if no routes selected */}
                 {displayRoutes.length === 0 && !loading && (

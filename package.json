@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.18",
+    "gtfs-realtime-bindings": "^1.1.1",
     "leaflet": "^1.9.4",
     "papaparse": "^5.5.3",
     "react": "^19.2.0",
