@@ -6,6 +6,7 @@ import StopMarker from './StopMarker';
 import '../utils/leafletConfig';
 import MapControls from './MapControls';
 import VehicleMarker from './VehicleMarker';
+import StopArrivalsPanel from './StopArrivalsPanel';
 
 function ZoomAwareStops({ route, showStops }) {
     const map = useMap();
@@ -40,6 +41,9 @@ function Map({ selectedRouteNames }) {
     const [error, setError] = useState(null);
     const [showStops, setShowStops] = useState(true);
     const [vehicles, setVehicles] = useState([]);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastUpdate, setLastUpdate] = useState(null);
+    const [selectedStop, setSelectedStop] = useState(null);
 
     const center = [49.2827, -123.1207];
     const zoom = 12;
@@ -126,6 +130,14 @@ function Map({ selectedRouteNames }) {
         return () => clearInterval(interval);
     }, [displayRoutes]);
 
+    const handleViewStopArrivals = (stop) => {
+        setSelectedStop(stop);
+    };
+
+    const handleCloseArrivals = () => {
+        setSelectedStop(null);
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center" style={{ height: '600px' }}>
@@ -166,26 +178,26 @@ function Map({ selectedRouteNames }) {
                     <div key={route.route_id}>
                         {route.shape.length > 0 && (
                             <Polyline
-                                key={route.route_id}
                                 positions={route.shape}
                                 pathOptions={{
                                     color: route.color,
                                     weight: 4,
                                     opacity: 0.7,
                                 }}
-                            >
-                                <Popup>
-                                    <div className="text-center">
-                                        <p className="font-bold text-lg">{route.route_short_name}</p>
-                                        <p className="text-sm text-gray-600">{route.route_long_name}</p>
-                                    </div>
-                                </Popup>
-                            </Polyline>
+                            />
                         )}
-                        {/* Add stops based off zoom */}
-                        <ZoomAwareStops route={route} showStops={showStops} />
+
+                        {showStops && route.stops.map((stop, index) => (
+                            <StopMarker
+                                key={`${route.route_id}-${stop.stop_id}-${index}`}
+                                stop={stop}
+                                route={route}
+                                onViewArrivals={handleViewStopArrivals}  // Pass handler
+                            />
+                        ))}
                     </div>
                 ))}
+
 
                 {/* Add map controls */}
                 <MapControls
@@ -215,6 +227,21 @@ function Map({ selectedRouteNames }) {
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded-lg shadow-lg z-[1000]">
                         <p className="text-gray-600">No routes selected. Please select routes above.</p>
                     </div>
+                )}
+
+                {lastUpdate && (
+                    <div className="absolute bottom-4 right-4 z-[1000] bg-white bg-opacity-90 rounded-md px-2 py-1 text-xs text-gray-600">
+                        Updated: {lastUpdate.toLocaleTimeString()}
+                    </div>
+                )}
+
+                {/* Stop Arrivals Panel */}
+                {selectedStop && (
+                    <StopArrivalsPanel
+                        stop={selectedStop}
+                        gtfsData={gtfsData}
+                        onClose={handleCloseArrivals}
+                    />
                 )}
             </MapContainer>
 

@@ -21,8 +21,15 @@ const createStopIcon = (color) => {
     });
 };
 
-function StopMarker({ stop, route }) {
+function StopMarker({ stop, route, onViewArrivals }) {
     const icon = createStopIcon(route.color);
+
+    const handleViewArrivals = (e) => {
+        e.preventDefault();
+        if (onViewArrivals) {
+            onViewArrivals(stop);
+        }
+    };
 
     return (
         <Marker
@@ -40,6 +47,14 @@ function StopMarker({ stop, route }) {
                             Stop #{stop.stop_code}
                         </p>
                     )}
+
+                    {/* View Arrivals Button */}
+                    <button
+                        onClick={handleViewArrivals}
+                        className="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded transition-colors"
+                    >
+                        View Arrivals
+                    </button>
                 </div>
             </Popup>
         </Marker>

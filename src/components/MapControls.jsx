@@ -2,6 +2,7 @@
  * Map control features
  * - toggle stops on/off
  * - vehicleCount indicator
+ * - refresh feature and add departure expefcted times
  */
 function MapControls({ showStops, onToggleStops, vehicleCount }) {
     return (

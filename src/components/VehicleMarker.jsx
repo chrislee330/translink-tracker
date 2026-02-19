@@ -32,7 +32,7 @@ const createBusIcon = (routeName, color, bearing = 0) => {
 function VehicleMarker({ vehicle, route }) {
     const icon = createBusIcon(route.route_short_name, route.color, vehicle.bearing || 0);
     const destination = vehicle.headsign;
-    console.log(vehicle, route, destination);
+    //console.log(vehicle, route, destination);
     return (
         <Marker
             position={[vehicle.latitude, vehicle.longitude]}
