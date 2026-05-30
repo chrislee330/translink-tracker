@@ -73,7 +73,11 @@ async function processGTFS() {
         stops: selectedStops,
         trips: selectedTrips,
         shapes: selectedShapes,
-        stopTimes: selectedStopTimes,
+        stopTimes: selectedStopTimes.map(st => ({
+        trip_id: st.trip_id,
+        stop_id: st.stop_id,
+        stop_sequence: st.stop_sequence,
+    })),
     };
 
     fs.writeFileSync(

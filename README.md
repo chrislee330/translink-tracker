@@ -2,6 +2,9 @@
 
 A real-time public transit tracking application for Vancouver's TransLink system, providing live vehicle positions, interactive route maps, and arrival predictions. Built as a tool for me to use as a daily commuter.
 
+# Website
+
+- https://translink-tracker-eta.vercel.app/
 ## Table of Contents
 
 - [Features](#features)
@@ -29,7 +32,8 @@ A real-time public transit tracking application for Vancouver's TransLink system
 
 ### User Experience
 - **Route selector** with visual badges and persistent preferences
-- **Manual refresh button** with loading states (TODO)
+- **Manual refresh button** with loading states
+- **Live tracking toggle** to pause/resume vehicle updates
 
 ### Data Features
 - **Trip headsigns** showing vehicle destinations (e.g., "To UBC", "To Boundary")
@@ -65,12 +69,12 @@ A real-time public transit tracking application for Vancouver's TransLink system
 translink-tracker/
 ├── public/
 │   └── data/
-│       └── gtfs/              # GTFS Static files
+│       └── gtfs/              # GTFS Static files (gitignored fetch from transit site)
 │           ├── routes.txt
 │           ├── stops.txt
 │           ├── shapes.txt
 │           ├── trips.txt
-│           └── stop_times.txt (optional)
+│           └── stop_times.txt
 ├── src/
 │   ├── components/
 │   │   ├── Map.jsx            # Main map component
@@ -91,10 +95,10 @@ translink-tracker/
 │   ├── App.jsx                # Root component
 │   ├── main.jsx               # App entry point
 │   └── index.css              # Global styles
+├── vercel.json                # Vercel proxy rewrites
 ├── .env.example               # Environment template
 ├── .gitignore                 # Git ignore rules
 ├── vite.config.js             # Vite configuration
-├── tailwind.config.js         # Tailwind setup
 ├── package.json               # Dependencies
 └── README.md                  # This file
 ```
@@ -118,6 +122,19 @@ export default defineConfig({
 })
 ```
 
+```json
+// vercel.json (production)
+{
+  "rewrites": [
+    {
+      "source": "/api/translink/:path*",
+      "destination": "https://gtfsapi.translink.ca/:path*"
+    }
+  ]
+}
+```
+
+
 ---
 
 ## Development Journey
@@ -140,9 +157,12 @@ This project was built by Phases:
 
 ### Phase 4: Arrivals (Commits 8)
 - Single stop arrival predictions
-- (todo) Comprehensive schedule board
-- (todo) Manual refresh controls
+- Comprehensive schedule board
+- Manual refresh controls
 
+### Phase 5: Deployment
+- Deployed to Vercel via CLI
+- API proxy via `vercel.json` rewrites
 ---
 
 ## Challenges & Solutions
@@ -150,23 +170,23 @@ This project was built by Phases:
 ### Challenge 1: CORS Errors
 **Problem:** TransLink API doesn't allow direct browser requests.
 
-**Solution:** Configured Vite proxy to forward requests server-side:
-```javascript
-proxy: {
-  '/api/translink': {
-    target: 'https://gtfsapi.translink.ca',
-    changeOrigin: true
-  }
+**Solution:** Configured Vite proxy for dev and `vercel.json` rewrites for production:
+```json
+{
+  "rewrites": [
+    { "source": "/api/translink/:path*", "destination": "https://gtfsapi.translink.ca/:path*" }
+  ]
 }
 ```
 
-### Challenge 2: Large GTFS Files
-**Problem:** `stop_times.txt` is 50MB+ causing slow load times.
 
+### Challenge 2: Large GTFS Files
+**Problem:** `stop_times.txt` is 50MB+ and `gtfs-processed.json` exceeded GitHub and Vercel's 100MB limits.
+ 
 **Solution:**
-- Skip loading `stop_times.txt` initially
-- Only load for features that need it
-- Consider pre-processing data into smaller JSON files
+- Strip `stopTimes` to only essential fields (`trip_id`, `stop_id`, `stop_sequence`)
+- Keep only one trip per route per direction
+- Deploy via Vercel CLI instead of GitHub to avoid committing large files
 
 ### Challenge 3: Stop ID Mismatches
 **Problem:** Stop IDs in static data don't match realtime data (e.g., "12345" vs "012345").

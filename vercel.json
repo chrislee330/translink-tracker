@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/translink/:path*",
+      "destination": "https://gtfsapi.translink.ca/:path*"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+public/data/gtfs/*.txt
+public/data/gtfs/*.zip
+dist
