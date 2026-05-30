@@ -44,6 +44,7 @@ function Map({ selectedRouteNames }) {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [lastUpdate, setLastUpdate] = useState(null);
     const [selectedStop, setSelectedStop] = useState(null);
+    const [isTracking, setIsTracking] = useState(true);
 
     const center = [49.2827, -123.1207];
     const zoom = 12;
@@ -114,9 +115,9 @@ function Map({ selectedRouteNames }) {
             }
         }
         
-    // Fetch vehicle positions and update every 30 seconds
+    // Fetch vehicle positions and update every 30 seconds only if tracking
     useEffect(() => {
-        if (displayRoutes.length === 0) {
+        if (displayRoutes.length === 0 || !isTracking) {
             setVehicles([]);
             return;
         }
@@ -124,12 +125,16 @@ function Map({ selectedRouteNames }) {
         // fetch once
         updateVehicles();
 
-        // fetch every 30 seconds
-        const interval = setInterval(updateVehicles, 30000);
+        // fetch every 30 seconds only if user is currently on this tab
+        const interval = setInterval(() => {
+        if (!document.hidden) {
+            updateVehicles();
+        }
+    }, 30000);
 
         // reset interval
         return () => clearInterval(interval);
-    }, [displayRoutes]);
+    }, [displayRoutes, isTracking]);
 
     // Manual refreshing
     const handleManualRefresh = () => {
@@ -212,6 +217,8 @@ function Map({ selectedRouteNames }) {
                     vehicleCount={vehicles.length}
                     onRefreshVehicles={handleManualRefresh}
                     isRefreshing={isRefreshing}
+                    isTracking={isTracking}
+                    onToggleTracking={() => setIsTracking(prev => !prev)}
                 />
 
                 {/* Draw vehicle markers */}

@@ -3,10 +3,27 @@
  * - toggle stops on/off
  * - vehicleCount indicator
  * - refresh feature and add departure expefcted times
+ * - live tracking toggle
  */
-function MapControls({ showStops, onToggleStops, vehicleCount, onRefreshVehicles, isRefreshing}) {
+function MapControls({ showStops, onToggleStops, vehicleCount, onRefreshVehicles, isRefreshing, isTracking, onToggleTracking}) {
     return (
         <div className="absolute top-4 right-4 z-[1000] bg-blue-500 rounded-lg shadow-md p-2">
+
+            {/* Live tracking toggle */}
+            <button
+                onClick={onToggleTracking}
+                className={`
+                    flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-colors
+                    ${isTracking
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-400 hover:bg-gray-500 text-white'
+                    }
+                `}
+            >
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isTracking ? 'bg-green-300 animate-pulse' : 'bg-gray-300'}`} />
+                {isTracking ? 'Tracking Live' : 'Tracking Paused'}
+            </button>
+
             {/* Stop toggle */}
             <label className="flex items-center cursor-pointer">
                 <input
@@ -26,7 +43,7 @@ function MapControls({ showStops, onToggleStops, vehicleCount, onRefreshVehicles
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
                         <span className="text-xs text-gray-600">
                             {vehicleCount} vehicle{vehicleCount !== 1 ? 's' : ''} live
-                        </span>
+                        </span> 
                     </div>
                 </div>
             )}
@@ -34,11 +51,11 @@ function MapControls({ showStops, onToggleStops, vehicleCount, onRefreshVehicles
             {/* Refresh button */}
           <button
             onClick={onRefreshVehicles}
-            disabled={isRefreshing}
+            disabled={isRefreshing || !isTracking}
             className={`
               w-full flex items-center justify-center gap-2 px-3 py-2 
               text-xs font-medium rounded-md transition-colors
-              ${isRefreshing 
+              ${isRefreshing || !isTracking
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
                 : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
               }
