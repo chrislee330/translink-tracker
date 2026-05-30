@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, Polyline, Popup, useMap } from 'react-leaflet';
 import { loadGTFSStaticData, getRoutesByShortNames, getShapeForRoute, getRouteColor, getMajorStopsForRoute } from '../services/gtfsStatic';
 import { fetchVehiclePositions, filterVehiclesByRoutes, getRouteIdsFromRoutes, enrichVehiclesWithHeadsigns } from '../services/gtfsRealtime';
@@ -92,14 +92,8 @@ function Map({ selectedRouteNames }) {
         setDisplayRoutes(routesWithShapes);
     }, [gtfsData, selectedRouteNames]);
 
-    // Fetch vehicle positions and update every 30 seconds
-    useEffect(() => {
-        if (displayRoutes.length === 0) {
-            setVehicles([]);
-            return;
-        }
 
-        async function updateVehicles() {
+    async function updateVehicles() {
             try {
                 console.log('Fetching vehicle positions...');
 
@@ -119,6 +113,13 @@ function Map({ selectedRouteNames }) {
                 console.error('Error fetching vehicles:', err);
             }
         }
+        
+    // Fetch vehicle positions and update every 30 seconds
+    useEffect(() => {
+        if (displayRoutes.length === 0) {
+            setVehicles([]);
+            return;
+        }
 
         // fetch once
         updateVehicles();
@@ -129,6 +130,11 @@ function Map({ selectedRouteNames }) {
         // reset interval
         return () => clearInterval(interval);
     }, [displayRoutes]);
+
+    // Manual refreshing
+    const handleManualRefresh = () => {
+        updateVehicles();
+    };
 
     const handleViewStopArrivals = (stop) => {
         setSelectedStop(stop);
@@ -204,6 +210,8 @@ function Map({ selectedRouteNames }) {
                     showStops={showStops}
                     onToggleStops={setShowStops}
                     vehicleCount={vehicles.length}
+                    onRefreshVehicles={handleManualRefresh}
+                    isRefreshing={isRefreshing}
                 />
 
                 {/* Draw vehicle markers */}
